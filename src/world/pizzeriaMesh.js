@@ -229,16 +229,17 @@ export function buildPizzeria(layout) {
     monitor.rotation.y = 0.3;
     desk.add(top, legL, legR, monitor);
     const deskFan = buildProp({ type: 'fan', cell: [0, 0], rot: 0 }, 0);
-    deskFan.scale.setScalar(0.55);
-    deskFan.position.set(0.55, 0.82, 0);
+    deskFan.scale.setScalar(0.42);
+    deskFan.position.set(0.6, 0.82, 0);
     const fb = deskFan.getObjectByName('fanBlades');
     if (fb) fans.push(fb);
     desk.add(deskFan);
-    desk.position.set((ox + 0.5) * s, 0, (oy + 0.5) * s - 0.9);
+    desk.position.set((ox + 0.5) * s, 0, (oy + 0.5) * s - 1.35);
     group.add(desk);
   }
 
   // ---- camera fixtures ----
+  const cameraFixtures = new Map();
   const camMat = new THREE.MeshStandardMaterial({ color: 0x2a2a33, metalness: 0.5, roughness: 0.5 });
   for (const cam of layout.cameras || []) {
     const [cxc, cyc] = cam.cell;
@@ -252,9 +253,10 @@ export function buildPizzeria(layout) {
     lens.position.set(0, -0.02, 0.24);
     fixture.add(body, lens);
     fixture.position.set((cxc + 0.5) * s, WALL_H - 0.35, (cyc + 0.5) * s);
-    fixture.rotation.y = cam.yaw;
+    fixture.rotation.y = cam.yaw + Math.PI; // same facing convention as the tablet
     fixture.rotation.x = 0.25;
     group.add(fixture);
+    cameraFixtures.set(cam.id, fixture);
   }
 
   // ---- per-room lights (pooled: biggest rooms first) ----
@@ -276,7 +278,7 @@ export function buildPizzeria(layout) {
     lights.push(light);
   }
 
-  return { group, graph, doorMeshes, fans, lights, cellSize: s };
+  return { group, graph, doorMeshes, fans, lights, cameraFixtures, cellSize: s };
 }
 
 // world position helpers

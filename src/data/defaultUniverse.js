@@ -1,6 +1,7 @@
 import {
   makeUniverse, makeAnimatronic, ROOM_TYPES, encodeCells,
 } from './schemas.js';
+import { deriveGraph } from '../world/graph.js';
 
 // The universe every new save starts from: a FNAF-1-homage pizzeria,
 // four starter animatronics, and a 5-night branching Purple Guy story.
@@ -28,7 +29,7 @@ function buildStarterLayout() {
   // east vent duct: kitchen -> office
   put('vent', [15, 7], [15, 8], [15, 9], [15, 10], [14, 10], [13, 10], [12, 10], [12, 11]);
 
-  return {
+  const layout = {
     grid: { w, h, cell: 2.5 },
     cells: encodeCells(cells),
     doors: [
@@ -48,14 +49,14 @@ function buildStarterLayout() {
       { a: [12, 11], b: [11, 11], kind: 'vent' },    // vent duct -> office (RIGHT VENT)
     ],
     cameras: [
-      { id: 'cam1', label: '1A SHOW STAGE', cell: [9, 1], yaw: Math.PI },
+      { id: 'cam1', label: '1A SHOW STAGE', cell: [9, 1], yaw: 0 },
       { id: 'cam2', label: '1B DINING', cell: [9, 6], yaw: 0 },
-      { id: 'cam3', label: '2A BACKSTAGE', cell: [3, 1], yaw: Math.PI },
-      { id: 'cam4', label: '2B WEST HALL', cell: [7, 8], yaw: Math.PI },
-      { id: 'cam5', label: '3A STORAGE', cell: [5, 8], yaw: Math.PI },
-      { id: 'cam6', label: '4A KITCHEN', cell: [16, 4], yaw: Math.PI },
-      { id: 'cam7', label: '4B ARCADE', cell: [16, 1], yaw: Math.PI },
-      { id: 'cam8', label: '5A VENT', cell: [14, 10], yaw: -Math.PI / 2 },
+      { id: 'cam3', label: '2A BACKSTAGE', cell: [3, 1], yaw: 0 },
+      { id: 'cam4', label: '2B WEST HALL', cell: [7, 8], yaw: 0 },
+      { id: 'cam5', label: '3A STORAGE', cell: [5, 8], yaw: 0 },
+      { id: 'cam6', label: '4A KITCHEN', cell: [16, 4], yaw: 0 },
+      { id: 'cam7', label: '4B ARCADE', cell: [16, 1], yaw: 0 },
+      { id: 'cam8', label: '5A VENT', cell: [14, 10], yaw: 0 },
     ],
     props: [
       { type: 'stagePlatform', cell: [9, 2], rot: 0 },
@@ -76,6 +77,17 @@ function buildStarterLayout() {
       { type: 'fan', cell: [16, 6], rot: 0 },
     ],
   };
+
+  // aim each camera at its room's centroid (builder yaw convention:
+  // the tablet renders with rotateY(yaw + PI))
+  const g = deriveGraph(layout);
+  for (const cam of layout.cameras) {
+    const r = g.roomOf[cam.cell[1] * w + cam.cell[0]];
+    if (r === -1) continue;
+    const c = g.rooms[r].centroid;
+    cam.yaw = Math.atan2(c[0] - cam.cell[0], c[1] - cam.cell[1]);
+  }
+  return layout;
 }
 
 function buildStarterAnimatronics() {

@@ -10,6 +10,7 @@ import { builderMode } from './modes/builderMode.js';
 import { freeRoamMode } from './modes/freeRoamMode.js';
 import { workshopMode } from './modes/workshopMode.js';
 import { characterMode } from './modes/characterMode.js';
+import { nightMode } from './modes/nightMode.js';
 import { makeDefaultUniverse } from './data/defaultUniverse.js';
 import { sanitizeUniverse } from './data/validators.js';
 
@@ -37,9 +38,14 @@ app.registerMode('builder', builderMode);
 app.registerMode('freeroam', freeRoamMode);
 app.registerMode('workshop', workshopMode);
 app.registerMode('characters', characterMode);
+app.registerMode('night', nightMode);
 
 // ---- debug/test helpers (harmless in normal play) ----
 ctx.debug.sanitizeUniverse = sanitizeUniverse;
+ctx.debug.setSeed = (n) => {
+  if (ctx.universe) ctx.universe.progress.seed = n;
+  rng.reseed(n);
+};
 ctx.debug.newDefaultUniverse = (name = 'Debug U', pizzeriaName = "Freddy's") => {
   ctx.universe = makeDefaultUniverse({ name, pizzeriaName });
   ctx.slot = 0;
