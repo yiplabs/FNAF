@@ -1,5 +1,9 @@
-// Keyboard + mouse-look abstraction.
-// Pointer lock when available; falls back to drag-to-look (also the headless path).
+// Keyboard + look abstraction on Pointer Events, so mouse and touch share
+// one path: pointer lock when available (desktop), drag-to-look otherwise
+// (touch, headless, and pointer-lock denial).
+
+export const IS_TOUCH = (typeof window !== 'undefined') &&
+  (('ontouchstart' in window) || (window.matchMedia?.('(pointer: coarse)').matches ?? false));
 
 export function createInput(canvas, settings) {
   const keys = new Set();
@@ -8,6 +12,7 @@ export function createInput(canvas, settings) {
     pitch: 0,
     pointerLocked: false,
     lookEnabled: false,
+    isTouch: IS_TOUCH,
     minPitch: -1.35,
     maxPitch: 1.35,
 
@@ -25,11 +30,12 @@ export function createInput(canvas, settings) {
 
     enableLook({ requestLock = true } = {}) {
       input.lookEnabled = true;
-      if (requestLock) tryLock();
+      if (requestLock && !IS_TOUCH) tryLock();
     },
 
     disableLook() {
       input.lookEnabled = false;
+      dragId = null;
       if (document.pointerLockElement === canvas) document.exitPointerLock();
     },
 
@@ -49,7 +55,7 @@ export function createInput(canvas, settings) {
   }
 
   function applyLookDelta(dx, dy) {
-    const sens = 0.0022 * (settings?.get().sensitivity ?? 1);
+    const sens = 0.0022 * (settings?.get().sensitivity ?? 1) * (IS_TOUCH ? 1.6 : 1);
     input.yaw -= dx * sens;
     input.pitch -= dy * sens;
     input.pitch = Math.max(input.minPitch, Math.min(input.maxPitch, input.pitch));
@@ -66,27 +72,32 @@ export function createInput(canvas, settings) {
     input.pointerLocked = document.pointerLockElement === canvas;
   });
 
-  document.addEventListener('mousemove', (e) => {
+  // one primary pointer drives drag-to-look; extra fingers are ignored here
+  let dragId = null;
+  let dragLast = { x: 0, y: 0 };
+
+  canvas.addEventListener('pointerdown', (e) => {
+    if (!input.lookEnabled || !e.isPrimary) return;
+    if (!input.pointerLocked) {
+      dragId = e.pointerId;
+      dragLast = { x: e.clientX, y: e.clientY };
+      if (e.pointerType === 'mouse') tryLock();
+    }
+  });
+
+  document.addEventListener('pointermove', (e) => {
     if (!input.lookEnabled) return;
     if (input.pointerLocked) {
       applyLookDelta(e.movementX, e.movementY);
-    } else if (dragging) {
+    } else if (e.pointerId === dragId) {
       applyLookDelta(e.clientX - dragLast.x, e.clientY - dragLast.y);
       dragLast = { x: e.clientX, y: e.clientY };
     }
   });
 
-  let dragging = false;
-  let dragLast = { x: 0, y: 0 };
-  canvas.addEventListener('mousedown', (e) => {
-    if (!input.lookEnabled) return;
-    if (!input.pointerLocked) {
-      dragging = true;
-      dragLast = { x: e.clientX, y: e.clientY };
-      tryLock();
-    }
-  });
-  document.addEventListener('mouseup', () => { dragging = false; });
+  const endDrag = (e) => { if (e.pointerId === dragId) dragId = null; };
+  document.addEventListener('pointerup', endDrag);
+  document.addEventListener('pointercancel', endDrag);
 
   return input;
 }

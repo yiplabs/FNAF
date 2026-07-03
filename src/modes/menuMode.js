@@ -147,7 +147,7 @@ function renderMain() {
   const hasSaves = ctxRef.saves.listSlots().some(s => !s.empty);
 
   screenEl = el('div', { class: 'screen fade-in' },
-    el('h1', { class: 'title-glow', text: 'FAZ-SIM', style: { fontSize: '64px', letterSpacing: '18px' } }),
+    el('h1', { class: 'title-glow', text: 'FAZ-SIM', style: { fontSize: 'clamp(40px, 11vw, 64px)', letterSpacing: 'clamp(8px, 3vw, 18px)' } }),
     el('div', { class: 'hint', text: 'A FAN-MADE ANIMATRONIC UNIVERSE SIMULATOR' }),
     el('div', { class: 'menu-stack' },
       button('New Universe', () => { ctxRef.audio.sfx.uiClick(); ctxRef.app.switchMode('hub', { newUniverse: true }); }, 'primary'),

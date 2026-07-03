@@ -344,18 +344,48 @@ export const builderMode = {
     buildPalette();
     refreshBanner();
 
-    // events
+    // events — pointer-based so mouse and touch share one path.
+    // one finger paints, two fingers pinch-zoom / pan, middle-drag pans.
+    const pointers = new Map();
+    let pinch = null;
+    const panScale = () => (zoom * 2) / window.innerHeight;
+
     this._onDown = (e) => {
       if (previewOn) return;
-      if (e.target.closest('.tool-palette') || e.target.closest('.top-bar')) return;
+      if (e.target.closest('.tool-palette') || e.target.closest('.top-bar') || e.target.closest('.validation-banner')) return;
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 2) {
+        // second finger down: stop painting, start pinch gesture
+        painting = false;
+        erasingDrag = false;
+        const [a, b] = [...pointers.values()];
+        pinch = {
+          dist: Math.hypot(a.x - b.x, a.y - b.y),
+          mid: { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 },
+          zoom0: zoom,
+        };
+        return;
+      }
+      if (pointers.size > 2) return;
       if (e.button === 1) { this._panning = true; this._panLast = { x: e.clientX, y: e.clientY }; e.preventDefault(); return; }
       if (e.button === 2) { erasingDrag = true; applyTool(e, true); return; }
       if (e.button === 0) { painting = true; applyTool(e, false); }
     };
     this._onMove = (e) => {
       if (previewOn) return;
+      if (pointers.has(e.pointerId)) pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinch && pointers.size >= 2) {
+        const [a, b] = [...pointers.values()];
+        const dist = Math.hypot(a.x - b.x, a.y - b.y);
+        const mid = { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+        if (dist > 8) zoom = Math.max(8, Math.min(45, pinch.zoom0 * pinch.dist / dist));
+        center.x -= (mid.x - pinch.mid.x) * panScale();
+        center.z -= (mid.y - pinch.mid.y) * panScale();
+        pinch.mid = mid;
+        return;
+      }
       if (this._panning) {
-        const scale = (zoom * 2) / window.innerHeight;
+        const scale = panScale();
         center.x -= (e.clientX - this._panLast.x) * scale;
         center.z -= (e.clientY - this._panLast.y) * scale;
         this._panLast = { x: e.clientX, y: e.clientY };
@@ -384,7 +414,11 @@ export const builderMode = {
       if (painting && BRUSHES.concat(['erase']).includes(tool)) applyTool(e, false);
       if (erasingDrag) applyTool(e, true);
     };
-    this._onUp = () => { painting = false; erasingDrag = false; this._panning = false; };
+    this._onUp = (e) => {
+      pointers.delete(e.pointerId);
+      if (pointers.size < 2) pinch = null;
+      if (pointers.size === 0) { painting = false; erasingDrag = false; this._panning = false; }
+    };
     this._onWheel = (e) => {
       zoom = Math.max(8, Math.min(45, zoom + Math.sign(e.deltaY) * 2.5));
     };
@@ -394,9 +428,10 @@ export const builderMode = {
       if (e.code === 'KeyP') togglePreview();
     };
 
-    window.addEventListener('mousedown', this._onDown);
-    window.addEventListener('mousemove', this._onMove);
-    window.addEventListener('mouseup', this._onUp);
+    window.addEventListener('pointerdown', this._onDown);
+    window.addEventListener('pointermove', this._onMove);
+    window.addEventListener('pointerup', this._onUp);
+    window.addEventListener('pointercancel', this._onUp);
     window.addEventListener('wheel', this._onWheel);
     window.addEventListener('contextmenu', this._onCtx);
     window.addEventListener('keydown', this._onKey);
@@ -434,9 +469,10 @@ export const builderMode = {
 
   exit() {
     clearTimeout(rebuildTimer);
-    window.removeEventListener('mousedown', this._onDown);
-    window.removeEventListener('mousemove', this._onMove);
-    window.removeEventListener('mouseup', this._onUp);
+    window.removeEventListener('pointerdown', this._onDown);
+    window.removeEventListener('pointermove', this._onMove);
+    window.removeEventListener('pointerup', this._onUp);
+    window.removeEventListener('pointercancel', this._onUp);
     window.removeEventListener('wheel', this._onWheel);
     window.removeEventListener('contextmenu', this._onCtx);
     window.removeEventListener('keydown', this._onKey);
