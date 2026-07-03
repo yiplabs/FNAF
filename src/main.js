@@ -5,6 +5,9 @@ import { createSaves } from './core/saves.js';
 import { createRng } from './core/rng.js';
 import { createApp } from './app.js';
 import { menuMode } from './modes/menuMode.js';
+import { hubMode } from './modes/hubMode.js';
+import { makeDefaultUniverse } from './data/defaultUniverse.js';
+import { sanitizeUniverse } from './data/validators.js';
 
 const canvas = document.getElementById('gl');
 const saves = createSaves();
@@ -25,6 +28,16 @@ const ctx = {
 
 const app = createApp(ctx);
 app.registerMode('menu', menuMode);
+app.registerMode('hub', hubMode);
+
+// ---- debug/test helpers (harmless in normal play) ----
+ctx.debug.sanitizeUniverse = sanitizeUniverse;
+ctx.debug.newDefaultUniverse = (name = 'Debug U', pizzeriaName = "Freddy's") => {
+  ctx.universe = makeDefaultUniverse({ name, pizzeriaName });
+  ctx.slot = 0;
+  saves.saveSlot(0, ctx.universe);
+  app.switchMode('hub');
+};
 
 app.switchMode('menu');
 engine.start();
