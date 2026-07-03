@@ -33,7 +33,12 @@ function buildStarterLayout() {
     cells: encodeCells(cells),
     doors: [
       { a: [4, 4], b: [5, 4], kind: 'doorway' },     // backstage <-> dining
-      { a: [9, 3], b: [9, 4], kind: 'doorway' },     // stage <-> dining
+      // open stage front: doorway per cell = proscenium colonnade
+      { a: [7, 3], b: [7, 4], kind: 'doorway' },
+      { a: [8, 3], b: [8, 4], kind: 'doorway' },
+      { a: [9, 3], b: [9, 4], kind: 'doorway' },
+      { a: [10, 3], b: [10, 4], kind: 'doorway' },
+      { a: [11, 3], b: [11, 4], kind: 'doorway' },
       { a: [14, 3], b: [14, 4], kind: 'doorway' },   // arcade <-> kitchen
       { a: [13, 5], b: [14, 5], kind: 'doorway' },   // dining <-> kitchen
       { a: [7, 7], b: [7, 8], kind: 'doorway' },     // dining <-> west hall

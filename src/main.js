@@ -7,6 +7,9 @@ import { createApp } from './app.js';
 import { menuMode } from './modes/menuMode.js';
 import { hubMode } from './modes/hubMode.js';
 import { builderMode } from './modes/builderMode.js';
+import { freeRoamMode } from './modes/freeRoamMode.js';
+import { workshopMode } from './modes/workshopMode.js';
+import { characterMode } from './modes/characterMode.js';
 import { makeDefaultUniverse } from './data/defaultUniverse.js';
 import { sanitizeUniverse } from './data/validators.js';
 
@@ -31,6 +34,9 @@ const app = createApp(ctx);
 app.registerMode('menu', menuMode);
 app.registerMode('hub', hubMode);
 app.registerMode('builder', builderMode);
+app.registerMode('freeroam', freeRoamMode);
+app.registerMode('workshop', workshopMode);
+app.registerMode('characters', characterMode);
 
 // ---- debug/test helpers (harmless in normal play) ----
 ctx.debug.sanitizeUniverse = sanitizeUniverse;
