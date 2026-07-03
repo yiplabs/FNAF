@@ -5,6 +5,16 @@ import { createSaves } from './core/saves.js';
 import { createRng } from './core/rng.js';
 import { createApp } from './app.js';
 import { menuMode } from './modes/menuMode.js';
+import { hubMode } from './modes/hubMode.js';
+import { builderMode } from './modes/builderMode.js';
+import { freeRoamMode } from './modes/freeRoamMode.js';
+import { workshopMode } from './modes/workshopMode.js';
+import { characterMode } from './modes/characterMode.js';
+import { nightMode } from './modes/nightMode.js';
+import { storyMode } from './modes/storyMode.js';
+import { storyEditorMode } from './modes/storyEditorMode.js';
+import { makeDefaultUniverse } from './data/defaultUniverse.js';
+import { sanitizeUniverse } from './data/validators.js';
 
 const canvas = document.getElementById('gl');
 const saves = createSaves();
@@ -25,6 +35,36 @@ const ctx = {
 
 const app = createApp(ctx);
 app.registerMode('menu', menuMode);
+app.registerMode('hub', hubMode);
+app.registerMode('builder', builderMode);
+app.registerMode('freeroam', freeRoamMode);
+app.registerMode('workshop', workshopMode);
+app.registerMode('characters', characterMode);
+app.registerMode('night', nightMode);
+app.registerMode('story', storyMode);
+app.registerMode('storyeditor', storyEditorMode);
+
+// ---- debug/test helpers (harmless in normal play) ----
+ctx.debug.sanitizeUniverse = sanitizeUniverse;
+ctx.debug.setSeed = (n) => {
+  if (ctx.universe) ctx.universe.progress.seed = n;
+  rng.reseed(n);
+};
+ctx.debug.storyReset = () => {
+  if (!ctx.universe) return;
+  const p = ctx.universe.progress;
+  p.night = 1;
+  p.nodeId = null;
+  p.flags = {};
+  p.purpleness = 0;
+  if (ctx.slot >= 0) saves.saveSlot(ctx.slot, ctx.universe);
+};
+ctx.debug.newDefaultUniverse = (name = 'Debug U', pizzeriaName = "Freddy's") => {
+  ctx.universe = makeDefaultUniverse({ name, pizzeriaName });
+  ctx.slot = 0;
+  saves.saveSlot(0, ctx.universe);
+  app.switchMode('hub');
+};
 
 app.switchMode('menu');
 engine.start();
