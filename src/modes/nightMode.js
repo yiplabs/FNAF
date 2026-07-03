@@ -253,6 +253,7 @@ export const nightMode = {
     officeUI = createOfficeUI({
       hasRightEntry: !!graph.officeEntries.right,
       rightKind: graph.officeEntries.right?.edge.kind,
+      onQuit: () => ctx.app.switchMode('hub'),
       onDoorToggle: (side) => setDoor(side, !doors[side].closed),
       onLightDown: (side) => {
         if (powerOut || tablet.isOpen) return;
@@ -290,6 +291,7 @@ export const nightMode = {
       if (!open && tablet.isOpen) { tablet.close(); officeUI.setControlsVisible(true); }
     };
     ctx.debug.tabletOpen = () => tablet.isOpen;
+    ctx.debug.doorClosed = (side) => !!doors[side]?.closed;
     ctx.debug.openCam = (id) => tablet.selectById(id);
     ctx.debug.pressDoor = (side, closed) => setDoor(side, closed);
     ctx.debug.forceMoveToOffice = (idx, side) => director.forceToEntry(idx, side, simTime);

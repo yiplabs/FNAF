@@ -3,6 +3,7 @@ import { el, button, uiRoot } from '../ui/dom.js';
 import { getPizzeria, invalidatePizzeria } from '../world/pizzeriaMesh.js';
 import { buildAnimatronicRig, poseIdle } from '../world/animatronicRig.js';
 import { disposeGeometries } from '../core/gfx.js';
+import { createJoystick } from '../ui/joystick.js';
 
 // Daytime first-person walk through the player's pizzeria.
 // Collision is cell-based: you can cross a room boundary only where a
@@ -12,7 +13,7 @@ const EYE = 1.62;
 const SPEED = 3.4;
 const RADIUS = 0.3;
 
-let ctxRef, scene, camera, pizzeria, rigs = [], pos, screenEl;
+let ctxRef, scene, camera, pizzeria, rigs = [], pos, screenEl, joystick;
 
 function cellAt(x, z) {
   const s = pizzeria.cellSize;
@@ -114,13 +115,18 @@ export const freeRoamMode = {
 
     ctx.input.enableLook({ requestLock: !navigator.webdriver });
 
+    joystick = ctx.input.isTouch ? createJoystick() : null;
     screenEl = el('div', {},
       el('div', { class: 'top-bar' },
         button('◄ Hub (Esc)', () => ctx.app.switchMode('hub'), 'small'),
         el('h2', { text: `${ctx.universe.meta.pizzeriaName} — DAY VISIT` }),
         el('div', { class: 'spacer' }),
-        el('span', { class: 'hint', text: 'WASD move · mouse / drag to look' }),
+        el('span', {
+          class: 'hint',
+          text: ctx.input.isTouch ? 'stick: move · drag screen: look' : 'WASD move · mouse / drag to look',
+        }),
       ),
+      joystick?.node ?? null,
     );
     uiRoot().append(screenEl);
 
@@ -139,6 +145,7 @@ export const freeRoamMode = {
       ctx.input.setLook(Math.atan2(-dir.x, -dir.z), 0.05);
     };
     ctx.debug.teleport = (x, z) => { pos.set(x, EYE, z); };
+    ctx.debug.playerPos = () => [pos.x, pos.z];
   },
 
   exit() {
@@ -148,11 +155,19 @@ export const freeRoamMode = {
     for (const rig of rigs) disposeGeometries(rig.group);
     scene = null;
     rigs = [];
+    joystick = null;
   },
 
   update(dt) {
     if (!scene) return;
-    const { x: ax, z: az } = ctxRef.input.axis();
+    let { x: ax, z: az } = ctxRef.input.axis();
+    if (joystick) {
+      const j = joystick.axis();
+      ax += j.x;
+      az += j.z;
+      ax = Math.max(-1, Math.min(1, ax));
+      az = Math.max(-1, Math.min(1, az));
+    }
     if (ax || az) {
       const yaw = ctxRef.input.yaw;
       const f = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));

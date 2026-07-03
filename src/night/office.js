@@ -3,7 +3,7 @@ import { el, button } from '../ui/dom.js';
 // Office HUD + door/light controls (DOM). nightMode owns the actual state;
 // this module renders it and forwards intents.
 
-export function createOfficeUI({ onDoorToggle, onLightDown, onLightUp, onTabletToggle, hasRightEntry, rightKind }) {
+export function createOfficeUI({ onDoorToggle, onLightDown, onLightUp, onTabletToggle, onQuit, hasRightEntry, rightKind }) {
   const powerEl = el('span', { class: 'big', text: '100%' });
   const usageEl = el('span', { class: 'usage-pips' }, ...[0, 1, 2, 3].map(() => el('span')));
   const clockEl = el('span', { class: 'big', text: '12 AM' });
@@ -12,10 +12,12 @@ export function createOfficeUI({ onDoorToggle, onLightDown, onLightUp, onTabletT
   const mkSide = (side, kindLabel) => {
     const doorBtn = el('button', { class: 'door-btn', text: `${kindLabel}` });
     doorBtn.addEventListener('click', () => onDoorToggle(side));
+    // hold-to-light works for mouse AND touch via pointer events
     const lightBtn = el('button', { class: 'door-btn', text: 'LIGHT' });
-    lightBtn.addEventListener('mousedown', () => onLightDown(side));
-    lightBtn.addEventListener('mouseup', () => onLightUp(side));
-    lightBtn.addEventListener('mouseleave', () => onLightUp(side));
+    lightBtn.addEventListener('pointerdown', (e) => { e.preventDefault(); onLightDown(side); });
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) {
+      lightBtn.addEventListener(ev, () => onLightUp(side));
+    }
     return {
       root: el('div', { class: `door-controls ${side}` }, doorBtn, lightBtn),
       doorBtn, lightBtn,
@@ -28,10 +30,17 @@ export function createOfficeUI({ onDoorToggle, onLightDown, onLightUp, onTabletT
   const tabletBtn = el('button', { class: 'tablet-flip', text: '▲ OPEN MONITOR ▲' });
   tabletBtn.addEventListener('click', () => onTabletToggle());
 
+  const quitBtn = button('◄ QUIT', () => onQuit?.(), 'small');
+  quitBtn.style.position = 'absolute';
+  quitBtn.style.top = '10px';
+  quitBtn.style.left = '12px';
+  quitBtn.style.opacity = '0.55';
+
   const root = el('div', { class: 'night-hud' },
     el('div', { class: 'hud-corner top-right' }, clockEl, el('br'), nightEl),
     el('div', { class: 'hud-corner bottom-left' },
       el('span', { text: 'POWER ' }), powerEl, usageEl),
+    quitBtn,
     left.root,
     right?.root ?? null,
     tabletBtn,
@@ -91,7 +100,7 @@ export function winScreen(nextNight, golden = false) {
       el('h1', {
         text: 'THE GOLDEN NIGHT',
         style: {
-          fontSize: '52px', letterSpacing: '14px', color: '#e8c84a', textAlign: 'center',
+          fontSize: 'clamp(28px, 9vw, 52px)', letterSpacing: 'clamp(5px, 2vw, 14px)', color: '#e8c84a', textAlign: 'center',
           textShadow: '0 0 24px rgba(232,200,74,0.8), 0 0 80px rgba(232,200,74,0.35)',
         },
       }),
@@ -100,7 +109,7 @@ export function winScreen(nextNight, golden = false) {
     );
   }
   return el('div', { class: 'screen fade-in', style: { background: 'rgba(0,0,0,0.9)', zIndex: 70 } },
-    el('h1', { class: 'title-glow', text: '6 AM', style: { fontSize: '90px', letterSpacing: '24px' } }),
+    el('h1', { class: 'title-glow', text: '6 AM', style: { fontSize: 'clamp(52px, 16vw, 90px)', letterSpacing: 'clamp(10px, 4vw, 24px)' } }),
     el('div', { class: 'hint', text: nextNight ? 'You made it. The day is yours — the night, less so.' : 'You survived the night.' }),
   );
 }

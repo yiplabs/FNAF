@@ -292,6 +292,60 @@ const checks = {
     ok('dialogueBlip safe', true);
   },
 
+  async m10(page) {
+    console.log('M10: mobile touch controls');
+    // fresh phone-shaped context with touch
+    const mctx = await page.context().browser().newContext({
+      viewport: { width: 390, height: 844 },
+      hasTouch: true,
+      isMobile: true,
+    });
+    const mp = await mctx.newPage();
+    mp.on('console', (msg) => { if (msg.type() === 'error') consoleErrors.push(`[mobile] ${msg.text()}`); });
+    mp.on('pageerror', (err) => consoleErrors.push(`[mobile] ${err}`));
+    try {
+      await mp.goto(BASE_URL, { waitUntil: 'load' });
+      await mp.waitForFunction(() => !!window.__game, null, { timeout: 15000 });
+      ok('touch detected', await mp.evaluate(() => window.__game.ctx.input.isTouch));
+      ok('quality defaults to low on touch', await mp.evaluate(() => window.__game.ctx.saves.get().quality) === 'low');
+      await mp.evaluate(() => window.__game.ctx.debug.newDefaultUniverse('Mobile U', "Freddy's Pocket"));
+      await mp.waitForFunction(() => window.__game.mode() === 'hub');
+      await shot(mp, 'm10-mobile-hub');
+
+      // free roam: joystick appears and moves the player
+      await mp.evaluate(() => window.__game.app.switchMode('freeroam'));
+      await mp.waitForTimeout(500);
+      ok('joystick shown', await mp.locator('.vjoy').count() === 1);
+      const before = await mp.evaluate(() => window.__game.ctx.debug.playerPos());
+      const box = await mp.locator('.vjoy').boundingBox();
+      const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+      await mp.locator('.vjoy').dispatchEvent('pointerdown', { pointerId: 7, pointerType: 'touch', isPrimary: true, clientX: cx, clientY: cy, bubbles: true });
+      await mp.locator('.vjoy').dispatchEvent('pointermove', { pointerId: 7, pointerType: 'touch', isPrimary: true, clientX: cx, clientY: cy - 40, bubbles: true });
+      await mp.waitForTimeout(700);
+      await mp.locator('.vjoy').dispatchEvent('pointerup', { pointerId: 7, pointerType: 'touch', isPrimary: true, clientX: cx, clientY: cy - 40, bubbles: true });
+      const after = await mp.evaluate(() => window.__game.ctx.debug.playerPos());
+      const moved = Math.hypot(after[0] - before[0], after[1] - before[1]);
+      ok('joystick moves player', moved > 0.5, `moved ${moved.toFixed(2)}m`);
+      await shot(mp, 'm10-mobile-freeroam');
+
+      // night shift: taps close the door and flip the monitor
+      await mp.evaluate(() => window.__game.app.switchMode('night', { night: 1 }));
+      await mp.waitForTimeout(700);
+      await mp.locator('.door-controls.left .door-btn').first().tap();
+      ok('tap closes door', await mp.evaluate(() => window.__game.ctx.debug.doorClosed('left')));
+      await mp.tap('.tablet-flip');
+      await mp.waitForTimeout(300);
+      ok('tap opens monitor', await mp.evaluate(() => window.__game.ctx.debug.tabletOpen()));
+      await shot(mp, 'm10-mobile-tablet');
+      await mp.tap('.tablet-flip');
+      await mp.waitForTimeout(200);
+      ok('tap closes monitor', await mp.evaluate(() => !window.__game.ctx.debug.tabletOpen()));
+      await shot(mp, 'm10-mobile-office');
+    } finally {
+      await mctx.close();
+    }
+  },
+
   async m7(page) {
     console.log('M7: audio + full loop');
     await ensureUniverse(page);

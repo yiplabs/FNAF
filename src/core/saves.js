@@ -1,6 +1,8 @@
 // localStorage persistence: global settings + up to 5 universe slots,
 // plus JSON export/import. All writes guarded against quota errors.
 
+import { IS_TOUCH } from './input.js';
+
 const SETTINGS_KEY = 'fnaf.settings';
 const SLOT_PREFIX = 'fnaf.slot.';
 export const MAX_SLOTS = 5;
@@ -10,7 +12,7 @@ const DEFAULT_SETTINGS = {
   sfxVolume: 1.0,
   ambientVolume: 0.7,
   sensitivity: 1.0,
-  quality: 'medium',
+  quality: IS_TOUCH ? 'low' : 'medium', // phones start on the cheap renderer path
 };
 
 function safeParse(json) {

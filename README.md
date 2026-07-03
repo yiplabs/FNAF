@@ -49,9 +49,14 @@ share your pizzeria, cast and story as a single file.
 ## Controls
 
 - **Everywhere** — mouse; `Esc` returns to the hub
-- **Builder** — left-click paint / place, right-click erase, wheel zoom, middle-drag pan
+- **Builder** — left-click paint / place, right-click erase, wheel zoom, middle-drag pan, `P` for a 3D fly-around
 - **Free roam** — `WASD` move, mouse (or drag) to look
-- **Night shift** — drag to pan the office; click door / light buttons; open the monitor to watch cameras (doors can't be used while it's up — of course)
+- **Night shift** — drag to pan the office; click door / light buttons; open the monitor (`Space` also flips it) to watch cameras — doors can't be used while it's up, of course
+
+**On phones and tablets** everything runs touch-first: a virtual joystick for walking,
+drag anywhere to look, tap doors/lights/cameras, one finger paints in the builder and
+two fingers pinch-zoom/pan. Rendering quality defaults to `low` on touch devices
+(changeable in Settings).
 
 ## Tech
 
