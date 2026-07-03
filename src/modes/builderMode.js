@@ -5,6 +5,7 @@ import { validateLayout } from '../data/validators.js';
 import { getPizzeria, invalidatePizzeria } from '../world/pizzeriaMesh.js';
 import { PROP_TYPES } from '../world/props.js';
 import { deriveGraph } from '../world/graph.js';
+import { disposeGeometries } from '../core/gfx.js';
 
 // Top-down orthographic grid editor. Painting cells IS building rooms —
 // rooms are derived as connected components, so there is no room bookkeeping.
@@ -62,6 +63,7 @@ function scheduleRebuild() {
 
 function rebuildWorld() {
   invalidatePizzeria(layout);
+  disposeGeometries(worldGroup);
   worldGroup.clear();
   const { group } = getPizzeria(layout);
   worldGroup.add(group);
@@ -69,6 +71,7 @@ function rebuildWorld() {
 }
 
 function rebuildMarkers() {
+  disposeGeometries(markerGroup);
   markerGroup.clear();
   const s = layout.grid.cell;
   const kindColor = { doorway: 0x39c46a, door: 0xd8442e, vent: 0x2ea8b8 };

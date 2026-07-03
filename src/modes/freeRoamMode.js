@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { el, button, uiRoot } from '../ui/dom.js';
 import { getPizzeria, invalidatePizzeria } from '../world/pizzeriaMesh.js';
 import { buildAnimatronicRig, poseIdle } from '../world/animatronicRig.js';
+import { disposeGeometries } from '../core/gfx.js';
 
 // Daytime first-person walk through the player's pizzeria.
 // Collision is cell-based: you can cross a room boundary only where a
@@ -144,6 +145,7 @@ export const freeRoamMode = {
     window.removeEventListener('keydown', this._onKey);
     ctxRef.input.disableLook();
     ctxRef.audio.ambient.stopStageTune();
+    for (const rig of rigs) disposeGeometries(rig.group);
     scene = null;
     rigs = [];
   },

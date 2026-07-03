@@ -4,6 +4,7 @@ import {
 } from '../ui/dom.js';
 import { BASE_TYPES, ACCESSORIES, ROUTE_PREFS, ABILITIES, makeAnimatronic } from '../data/schemas.js';
 import { buildAnimatronicRig, poseIdle, poseStare, poseWalk, poseJumpscare } from '../world/animatronicRig.js';
+import { disposeGeometries } from '../core/gfx.js';
 
 // Animatronic workshop: turntable preview + appearance and AI panels.
 // Every edit mutates the universe in place and rebuilds the preview rig.
@@ -17,7 +18,10 @@ function anims() { return ctxRef.universe.animatronics; }
 function current() { return anims()[selected]; }
 
 function rebuildRig() {
-  if (rig) scene.remove(rig.group);
+  if (rig) {
+    scene.remove(rig.group);
+    disposeGeometries(rig.group);
+  }
   rig = null;
   if (!current()) return;
   rig = buildAnimatronicRig(current());

@@ -4,6 +4,7 @@ import {
 } from '../ui/dom.js';
 import { HAIR_STYLES, CHARACTER_ACCESSORIES } from '../data/schemas.js';
 import { buildCharacterRig, applyPurpleness, poseCharacterIdle, poseCharacterOminous } from '../world/characterRig.js';
+import { disposeGeometries } from '../core/gfx.js';
 
 // Side-by-side customization of the player and the friend.
 // The friend preview shows the current story purpleness — he IS becoming
@@ -17,7 +18,10 @@ let sideEl, screenEl, tabsEl;
 function chars() { return ctxRef.universe.characters; }
 
 function rebuildRig(role) {
-  if (rigs[role]) scene.remove(rigs[role].group);
+  if (rigs[role]) {
+    scene.remove(rigs[role].group);
+    disposeGeometries(rigs[role].group);
+  }
   const rig = buildCharacterRig(chars()[role]);
   rig.group.position.x = role === 'player' ? -1.1 : 1.1;
   if (role === 'friend') applyPurpleness(rig, ctxRef.universe.progress.purpleness);
@@ -121,6 +125,7 @@ export const characterMode = {
   exit() {
     window.removeEventListener('keydown', this._onKey);
     if (ctxRef.slot >= 0) ctxRef.saves.saveSlot(ctxRef.slot, ctxRef.universe);
+    disposeGeometries(scene);
     scene = null;
     rigs = { player: null, friend: null };
   },

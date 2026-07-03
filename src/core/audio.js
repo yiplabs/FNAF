@@ -215,6 +215,66 @@ export function createAudio(settings) {
     osc.start(t); osc.stop(t + 0.06);
   }
 
+  // something small and fast moving through sheet metal
+  function ventScuttle() {
+    if (!ok()) return;
+    const t0 = ctx.currentTime;
+    for (let i = 0; i < 5; i++) {
+      const t = t0 + i * 0.07 + Math.random() * 0.02;
+      const src = ctx.createBufferSource();
+      src.buffer = getNoise();
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 900 + Math.random() * 900;
+      bp.Q.value = 8;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.12, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.06);
+      src.connect(bp).connect(g).connect(sfxBus);
+      src.start(t); src.stop(t + 0.08);
+    }
+  }
+
+  // servo whine: something is standing very close
+  function servoWhir() {
+    if (!ok()) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(1100, t);
+    osc.frequency.exponentialRampToValueAtTime(1900, t + 0.35);
+    osc.frequency.exponentialRampToValueAtTime(900, t + 0.8);
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 700;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.05, t + 0.1);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 0.85);
+    osc.connect(hp).connect(g).connect(sfxBus);
+    osc.start(t); osc.stop(t + 0.9);
+  }
+
+  // pots and pans: someone is in the kitchen
+  function potClatter() {
+    if (!ok()) return;
+    const t0 = ctx.currentTime;
+    for (let i = 0; i < 3; i++) {
+      const t = t0 + i * 0.12 + Math.random() * 0.08;
+      const osc = ctx.createOscillator();
+      osc.type = 'square';
+      osc.frequency.value = 500 + Math.random() * 1400;
+      const bp = ctx.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = osc.frequency.value * 1.5;
+      bp.Q.value = 12;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.1, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.18);
+      osc.connect(bp).connect(g).connect(sfxBus);
+      osc.start(t); osc.stop(t + 0.2);
+    }
+  }
+
   // distant building groan for night ambience
   function creak() {
     if (!ok()) return;
@@ -404,7 +464,7 @@ export function createAudio(settings) {
     stopLoop,
     sfx: {
       uiClick, camBlip, doorSlam, footstepThud, scream, chime6AM, powerOutDrone,
-      lightBuzz, stopLightBuzz, dialogueBlip, creak,
+      lightBuzz, stopLightBuzz, dialogueBlip, creak, ventScuttle, servoWhir, potClatter,
     },
     ambient: {
       fanHum, stopFan: () => stopLoop('fan'),

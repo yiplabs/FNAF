@@ -6,6 +6,7 @@ import { createDirector } from '../night/aiDirector.js';
 import { createOfficeUI, loseScreen, winScreen } from '../night/office.js';
 import { createTablet } from '../night/tablet.js';
 import { createJumpscare } from '../night/jumpscare.js';
+import { disposeGeometries } from '../core/gfx.js';
 
 // The classic loop: 12AM–6AM in the office you built, watching the cameras
 // you placed, against the animatronics you designed.
@@ -18,7 +19,7 @@ let ctxRef, params;
 let scene, officeCam, pizzeria, graph;
 let director, tablet, officeUI, jumpscare;
 let rigs = [];                // parallel to director.agents
-let simTime, power, powerOut, doomAt, state, nextCreakAt;
+let simTime, power, powerOut, doomAt, state, nextCreakAt, nextClatterAt;
 let doors, lights, doorBindings;
 let baseYaw, screenEl, lightMeshes;
 let winTimer = null;
@@ -218,6 +219,7 @@ export const nightMode = {
     powerOut = false;
     state = 'running';
     nextCreakAt = 14 + ctx.rng.next() * 20;
+    nextClatterAt = 8;
     doors = { left: { closed: false }, right: { closed: false } };
     lights = { left: false, right: false };
 
@@ -292,6 +294,8 @@ export const nightMode = {
     if (lightMeshes) for (const l of lightMeshes) l.intensity = l.userData.orig ?? l.intensity;
     // rigs may have been stolen by the jumpscare scene; rebuild next time
     invalidatePizzeria(ctxRef.universe.layout);
+    for (const rig of rigs) disposeGeometries(rig.group);
+    disposeGeometries(scene); // includes the (now cache-invalidated) pizzeria
     scene = null;
     rigs = [];
   },
@@ -328,15 +332,25 @@ export const nightMode = {
 
     director.tick({
       now: simTime,
+      hour,
       viewedRoom: tablet.viewedRoom(),
       isDoorClosed: (side) => !!doors[side]?.closed,
       powerOut,
       onJumpscare: (agent) => triggerJumpscare(agent),
-      onMove: (agent) => {
-        if (graph.distToOffice[agent.room] <= 2) ctxRef.audio.sfx.footstepThud();
+      onMove: (agent, edgeKind) => {
+        if (edgeKind === 'vent') ctxRef.audio.sfx.ventScuttle();
+        else if (graph.distToOffice[agent.room] <= 2) ctxRef.audio.sfx.footstepThud();
       },
+      onArriveEntry: () => ctxRef.audio.sfx.servoWhir(),
       onDoorBang: () => ctxRef.audio.sfx.doorSlam(),
     });
+
+    // kitchen clatter: someone is rummaging where the pots live
+    if (simTime >= nextClatterAt) {
+      const inKitchen = director.agents.some(a => graph.rooms[a.room]?.type === 'kitchen');
+      if (inKitchen) ctxRef.audio.sfx.potClatter();
+      nextClatterAt = simTime + 6 + ctxRef.rng.next() * 8;
+    }
 
     // door cover animation
     for (const side of ['left', 'right']) {

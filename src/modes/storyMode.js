@@ -3,6 +3,7 @@ import { el, button, uiRoot, toast } from '../ui/dom.js';
 import { checkCondition, applyEffect, validateStory } from '../data/validators.js';
 import { buildCharacterRig, applyPurpleness, poseCharacterIdle, poseCharacterOminous } from '../world/characterRig.js';
 import { buildAnimatronicRig, poseIdle } from '../world/animatronicRig.js';
+import { disposeGeometries } from '../core/gfx.js';
 
 // Story runtime: dialogue and choices between nights, rendered over small
 // 3D tableaus. Night nodes hand off to nightMode and resume on 6AM.
@@ -43,6 +44,7 @@ function checkerTexture() {
 }
 
 function buildTableau(kind) {
+  disposeGeometries(scene); // drop the previous tableau's buffers
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x050508);
   scene.fog = new THREE.Fog(0x050508, 8, 26);
@@ -371,6 +373,7 @@ export const storyMode = {
   exit() {
     window.removeEventListener('click', this._onClick);
     window.removeEventListener('keydown', this._onKey);
+    disposeGeometries(scene);
     scene = null;
     dialogEl = null;
   },

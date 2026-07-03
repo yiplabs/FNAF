@@ -24,9 +24,13 @@ export function createDirector({ universe, graph, rng, night, maxed = false }) {
     };
   });
 
-  const aggressionOf = (anim) => maxed
+  // FNAF-style difficulty: base per-night aggression plus a ramp as the
+  // night wears on (+1 per hour from 2AM, capped at +4)
+  const aggressionOf = (anim, hour = 0) => maxed
     ? 20
-    : anim.ai.aggression[Math.min(night - 1, anim.ai.aggression.length - 1)] ?? 0;
+    : Math.min(20,
+        (anim.ai.aggression[Math.min(night - 1, anim.ai.aggression.length - 1)] ?? 0)
+        + Math.max(0, Math.min(4, (hour | 0) - 1)));
 
   const entrySides = [];
   if (graph.officeEntries.left) entrySides.push({ side: 'left', info: graph.officeEntries.left });
@@ -125,7 +129,7 @@ export function createDirector({ universe, graph, rng, night, maxed = false }) {
           continue;
         }
 
-        const aggr = ctx.powerOut ? 20 : aggressionOf(anim);
+        const aggr = ctx.powerOut ? 20 : aggressionOf(anim, ctx.hour);
         if (rng.int(1, 20) > aggr) {
           armNext(agent);
           continue;
@@ -137,10 +141,13 @@ export function createDirector({ universe, graph, rng, night, maxed = false }) {
         if (!move) { armNext(agent); continue; }
         agent.room = move.other;
         agent.lastMoveAt = ctx.now;
-        ctx.onMove?.(agent);
+        ctx.onMove?.(agent, move.edge.kind);
 
         const entry = entryForRoom(agent.room);
-        if (entry) startAttack(agent, entry.side, ctx.now);
+        if (entry) {
+          startAttack(agent, entry.side, ctx.now);
+          ctx.onArriveEntry?.(agent);
+        }
         armNext(agent);
       }
     },
