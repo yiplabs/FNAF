@@ -235,6 +235,21 @@ export const nightMode = {
     jumpscare = createJumpscare({ audio: ctx.audio });
     bindDoors();
 
+    const toggleTablet = () => {
+      if (powerOut || state !== 'running') return;
+      if (tablet.isOpen) {
+        tablet.close();
+        officeUI.setControlsVisible(true);
+      } else {
+        lights.left = lights.right = false;
+        officeUI.setLight('left', false);
+        officeUI.setLight('right', false);
+        ctx.audio.sfx.stopLightBuzz();
+        tablet.open();
+        officeUI.setControlsVisible(false);
+      }
+    };
+
     officeUI = createOfficeUI({
       hasRightEntry: !!graph.officeEntries.right,
       rightKind: graph.officeEntries.right?.edge.kind,
@@ -251,22 +266,21 @@ export const nightMode = {
         officeUI.setLight(side, false);
         ctx.audio.sfx.stopLightBuzz();
       },
-      onTabletToggle: () => {
-        if (powerOut || state !== 'running') return;
-        if (tablet.isOpen) { tablet.close(); officeUI.setControlsVisible(true); }
-        else {
-          lights.left = lights.right = false;
-          officeUI.setLight('left', false); officeUI.setLight('right', false);
-          ctx.audio.sfx.stopLightBuzz();
-          tablet.open();
-          officeUI.setControlsVisible(false);
-        }
-      },
+      onTabletToggle: toggleTablet,
     });
     officeUI.setClock(0, night);
 
     screenEl = el('div', {}, officeUI.root, tablet.root);
     uiRoot().append(screenEl);
+
+    // Space also flips the monitor, like slamming the tablet down
+    this._onKey = (e) => {
+      if (e.code === 'Space' && !(e.target instanceof HTMLInputElement)) {
+        e.preventDefault();
+        toggleTablet();
+      }
+    };
+    window.addEventListener('keydown', this._onKey);
 
     ctx.audio.ambient.fanHum();
 
@@ -275,6 +289,7 @@ export const nightMode = {
       if (open && !tablet.isOpen) { tablet.open(); officeUI.setControlsVisible(false); }
       if (!open && tablet.isOpen) { tablet.close(); officeUI.setControlsVisible(true); }
     };
+    ctx.debug.tabletOpen = () => tablet.isOpen;
     ctx.debug.openCam = (id) => tablet.selectById(id);
     ctx.debug.pressDoor = (side, closed) => setDoor(side, closed);
     ctx.debug.forceMoveToOffice = (idx, side) => director.forceToEntry(idx, side, simTime);
@@ -288,6 +303,7 @@ export const nightMode = {
 
   exit() {
     clearTimeout(winTimer);
+    window.removeEventListener('keydown', this._onKey);
     ctxRef.input.disableLook();
     ctxRef.audio.stopAllLoops();
     // restore lighting for other modes

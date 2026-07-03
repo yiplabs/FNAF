@@ -189,12 +189,16 @@ const checks = {
     ok('power shown', /POWER/i.test(hud));
     await nonBlack(page, 'office');
     await shot(page, 'm5-office');
-    // camera tablet
-    await page.evaluate(() => window.__game.ctx.debug.toggleTablet(true));
+    // camera tablet — drive the REAL button, not the debug hook (regression:
+    // fullscreen static overlay used to swallow the close click)
+    await page.click('.tablet-flip');
     await page.waitForTimeout(500);
     ok('cam label visible', await page.locator('.cam-label').count() > 0);
+    ok('tablet reports open', await page.evaluate(() => window.__game.ctx.debug.tabletOpen()));
     await shot(page, 'm5-tablet');
-    await page.evaluate(() => window.__game.ctx.debug.toggleTablet(false));
+    await page.click('.tablet-flip');
+    await page.waitForTimeout(300);
+    ok('CLOSE MONITOR click closes tablet', await page.evaluate(() => !window.__game.ctx.debug.tabletOpen()));
     // closed door forces retreat
     const retreat = await page.evaluate(() => {
       const d = window.__game.ctx.debug;

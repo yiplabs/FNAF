@@ -344,6 +344,9 @@ h1, h2, h3 { font-weight: 700; letter-spacing: 2px; }
 
 .cam-hud { position: absolute; inset: 0; pointer-events: none; }
 .cam-hud > * { pointer-events: auto; }
+/* fullscreen overlays must never swallow clicks meant for the HUD below
+   (regression: static noise blocked the CLOSE MONITOR button) */
+.cam-hud > .static-noise, .cam-hud > .cam-label { pointer-events: none; }
 .cam-label {
   position: absolute; top: 18px; left: 22px;
   font-size: 20px; letter-spacing: 3px; color: #dfe;
