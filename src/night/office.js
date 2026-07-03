@@ -85,7 +85,20 @@ export function loseScreen({ onRetry, onHub }) {
   );
 }
 
-export function winScreen(nextNight) {
+export function winScreen(nextNight, golden = false) {
+  if (golden) {
+    return el('div', { class: 'screen fade-in', style: { background: 'rgba(6,4,0,0.94)', zIndex: 70 } },
+      el('h1', {
+        text: 'THE GOLDEN NIGHT',
+        style: {
+          fontSize: '52px', letterSpacing: '14px', color: '#e8c84a', textAlign: 'center',
+          textShadow: '0 0 24px rgba(232,200,74,0.8), 0 0 80px rgba(232,200,74,0.35)',
+        },
+      }),
+      el('div', { class: 'hint', style: { maxWidth: '560px', textAlign: 'center', lineHeight: '1.8' },
+        text: 'Every servo at maximum. Every camera watched you fail to fail. Somewhere in the walls, a golden suit tips its little hat. You have seen everything this place has to offer — and it has seen you.' }),
+    );
+  }
   return el('div', { class: 'screen fade-in', style: { background: 'rgba(0,0,0,0.9)', zIndex: 70 } },
     el('h1', { class: 'title-glow', text: '6 AM', style: { fontSize: '90px', letterSpacing: '24px' } }),
     el('div', { class: 'hint', text: nextNight ? 'You made it. The day is yours — the night, less so.' : 'You survived the night.' }),

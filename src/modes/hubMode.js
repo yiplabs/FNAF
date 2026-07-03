@@ -103,7 +103,7 @@ function renderHub() {
     ),
     storyDone
       ? el('div', { class: 'row' },
-          button('☠ Night 6: Custom Night', () => ctxRef.app.switchMode('night', { night: 6, standalone: true }), 'danger'),
+          button('☠ Night 6: All Servos Maxed', () => ctxRef.app.switchMode('night', { night: 6, custom: true }), 'danger'),
           el('span', { class: 'hint', text: `Endings seen: ${u.progress.endingsSeen.join(', ')}` }),
         )
       : null,

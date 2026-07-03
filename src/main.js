@@ -50,6 +50,15 @@ ctx.debug.setSeed = (n) => {
   if (ctx.universe) ctx.universe.progress.seed = n;
   rng.reseed(n);
 };
+ctx.debug.storyReset = () => {
+  if (!ctx.universe) return;
+  const p = ctx.universe.progress;
+  p.night = 1;
+  p.nodeId = null;
+  p.flags = {};
+  p.purpleness = 0;
+  if (ctx.slot >= 0) saves.saveSlot(ctx.slot, ctx.universe);
+};
 ctx.debug.newDefaultUniverse = (name = 'Debug U', pizzeriaName = "Freddy's") => {
   ctx.universe = makeDefaultUniverse({ name, pizzeriaName });
   ctx.slot = 0;

@@ -6,7 +6,7 @@ import { edgeUsable } from '../world/graph.js';
 
 const BASE_INTERVAL = 4.8;
 
-export function createDirector({ universe, graph, rng, night, hooks }) {
+export function createDirector({ universe, graph, rng, night, maxed = false }) {
   const stages = graph.rooms.filter(r => r.type === 'stage');
   const fallbackRoom = stages[0] ?? graph.rooms.find(r => r.type !== 'office') ?? graph.rooms[0];
 
@@ -24,7 +24,9 @@ export function createDirector({ universe, graph, rng, night, hooks }) {
     };
   });
 
-  const aggressionOf = (anim) => anim.ai.aggression[Math.min(night - 1, anim.ai.aggression.length - 1)] ?? 0;
+  const aggressionOf = (anim) => maxed
+    ? 20
+    : anim.ai.aggression[Math.min(night - 1, anim.ai.aggression.length - 1)] ?? 0;
 
   const entrySides = [];
   if (graph.officeEntries.left) entrySides.push({ side: 'left', info: graph.officeEntries.left });

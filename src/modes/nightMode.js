@@ -135,12 +135,17 @@ function winNight() {
   ctxRef.audio.ambient.stopFan();
   ctxRef.audio.sfx.stopLightBuzz();
   ctxRef.audio.sfx.chime6AM();
-  screenEl.append(winScreen(!!params.onComplete));
+  // surviving the maxed-out custom night earns the secret golden ending
+  const golden = !params.onComplete && params.night >= 6;
+  if (golden && !ctxRef.universe.progress.endingsSeen.includes('golden')) {
+    ctxRef.universe.progress.endingsSeen.push('golden');
+  }
+  screenEl.append(winScreen(!!params.onComplete, golden));
   if (ctxRef.slot >= 0) ctxRef.saves.saveSlot(ctxRef.slot, ctxRef.universe);
   winTimer = setTimeout(() => {
     if (params.onComplete) params.onComplete();
     else ctxRef.app.switchMode('hub');
-  }, 2800);
+  }, golden ? 5000 : 2800);
 }
 
 function goPowerOut() {
@@ -215,7 +220,7 @@ export const nightMode = {
     doors = { left: { closed: false }, right: { closed: false } };
     lights = { left: false, right: false };
 
-    director = createDirector({ universe: u, graph, rng: ctx.rng, night });
+    director = createDirector({ universe: u, graph, rng: ctx.rng, night, maxed: !!params.custom });
 
     rigs = director.agents.map(a => {
       const rig = buildAnimatronicRig(a.anim);
