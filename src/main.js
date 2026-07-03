@@ -11,6 +11,8 @@ import { freeRoamMode } from './modes/freeRoamMode.js';
 import { workshopMode } from './modes/workshopMode.js';
 import { characterMode } from './modes/characterMode.js';
 import { nightMode } from './modes/nightMode.js';
+import { storyMode } from './modes/storyMode.js';
+import { storyEditorMode } from './modes/storyEditorMode.js';
 import { makeDefaultUniverse } from './data/defaultUniverse.js';
 import { sanitizeUniverse } from './data/validators.js';
 
@@ -39,6 +41,8 @@ app.registerMode('freeroam', freeRoamMode);
 app.registerMode('workshop', workshopMode);
 app.registerMode('characters', characterMode);
 app.registerMode('night', nightMode);
+app.registerMode('story', storyMode);
+app.registerMode('storyeditor', storyEditorMode);
 
 // ---- debug/test helpers (harmless in normal play) ----
 ctx.debug.sanitizeUniverse = sanitizeUniverse;
