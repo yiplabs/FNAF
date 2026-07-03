@@ -384,10 +384,16 @@ export const storyMode = {
 
     // typewriter
     if (typing && dialogEl) {
+      const before = Math.floor(charIdx);
       charIdx += dt * 42;
       const full = currentLineFull();
       const shown = full.slice(0, Math.floor(charIdx));
       dialogEl.querySelector('.line').textContent = shown;
+      // voice blips every few characters (phone gets the classic garble)
+      if (Math.floor(charIdx / 3) > Math.floor(before / 3) && shown.length < full.length) {
+        const n = node();
+        ctxRef.audio.sfx.dialogueBlip(n?.type === 'dialogue' ? n.speaker : 'narrator');
+      }
       if (shown.length >= full.length) {
         typing = false;
         const n = node();

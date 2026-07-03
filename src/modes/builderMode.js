@@ -13,6 +13,7 @@ const BRUSHES = ROOM_TYPES.filter(t => t !== 'void');
 
 let ctxRef, layout;
 let scene, camera, worldGroup, markerGroup, hoverMesh;
+let previewCam = null, previewOn = false;
 let tool = 'dining';           // active tool: room type | 'erase' | 'door' | 'camera' | 'prop'
 let propType = 'table';
 let zoom = 24;
@@ -268,12 +269,21 @@ function buildPalette() {
 
 function refreshPalette() { buildPalette(); }
 
+function togglePreview() {
+  previewOn = !previewOn;
+  hoverMesh.visible = false;
+  if (previewOn && !previewCam) {
+    previewCam = new THREE.PerspectiveCamera(55, 1, 0.1, 150);
+  }
+}
+
 // ---- mode ----
 
 export const builderMode = {
   enter(ctx) {
     ctxRef = ctx;
     layout = ctx.universe.layout;
+    previewOn = false;
     defaultCellsBackup = JSON.parse(JSON.stringify({
       cells: layout.cells, doors: layout.doors, cameras: layout.cameras, props: layout.props,
     }));
@@ -321,6 +331,7 @@ export const builderMode = {
         button('◄ Hub', () => ctx.app.switchMode('hub'), 'small'),
         el('h2', { text: `PIZZERIA BUILDER — ${ctx.universe.meta.pizzeriaName}` }),
         el('div', { class: 'spacer' }),
+        button('3D Preview (P)', () => togglePreview(), 'small'),
         el('span', { class: 'hint', text: 'wheel: zoom · middle-drag: pan' }),
       ),
       bannerEl,
@@ -332,12 +343,14 @@ export const builderMode = {
 
     // events
     this._onDown = (e) => {
+      if (previewOn) return;
       if (e.target.closest('.tool-palette') || e.target.closest('.top-bar')) return;
       if (e.button === 1) { this._panning = true; this._panLast = { x: e.clientX, y: e.clientY }; e.preventDefault(); return; }
       if (e.button === 2) { erasingDrag = true; applyTool(e, true); return; }
       if (e.button === 0) { painting = true; applyTool(e, false); }
     };
     this._onMove = (e) => {
+      if (previewOn) return;
       if (this._panning) {
         const scale = (zoom * 2) / window.innerHeight;
         center.x -= (e.clientX - this._panLast.x) * scale;
@@ -373,7 +386,10 @@ export const builderMode = {
       zoom = Math.max(8, Math.min(45, zoom + Math.sign(e.deltaY) * 2.5));
     };
     this._onCtx = (e) => { if (!e.target.closest('.tool-palette')) e.preventDefault(); };
-    this._onKey = (e) => { if (e.code === 'Escape') ctx.app.switchMode('hub'); };
+    this._onKey = (e) => {
+      if (e.code === 'Escape') ctx.app.switchMode('hub');
+      if (e.code === 'KeyP') togglePreview();
+    };
 
     window.addEventListener('mousedown', this._onDown);
     window.addEventListener('mousemove', this._onMove);
@@ -401,6 +417,7 @@ export const builderMode = {
       return out;
     };
     ctx.debug.builderCycleDoor = (ax, ay, bx, by) => cycleDoor({ a: [ax, ay], b: [bx, by] });
+    ctx.debug.builderPreview = (on) => { if (previewOn !== on) togglePreview(); };
     ctx.debug.builderRestoreDefault = () => {
       layout.cells = defaultCellsBackup.cells;
       layout.doors = JSON.parse(JSON.stringify(defaultCellsBackup.doors));
@@ -427,9 +444,25 @@ export const builderMode = {
 
   update() {},
 
-  frame() {
+  frame(dt, time) {
     if (!scene) return;
     const aspect = window.innerWidth / window.innerHeight;
+    if (previewOn && previewCam) {
+      // slow fly-around of the build
+      const s = layout.grid.cell;
+      const cx = layout.grid.w * s / 2, cz = layout.grid.h * s / 2;
+      const r = Math.max(layout.grid.w, layout.grid.h) * s * 0.6;
+      previewCam.aspect = aspect;
+      previewCam.updateProjectionMatrix();
+      previewCam.position.set(
+        cx + Math.cos(time * 0.18) * r,
+        r * 0.55,
+        cz + Math.sin(time * 0.18) * r,
+      );
+      previewCam.lookAt(cx, 0, cz);
+      ctxRef.engine.renderer.render(scene, previewCam);
+      return;
+    }
     camera.left = -zoom * aspect;
     camera.right = zoom * aspect;
     camera.top = zoom;

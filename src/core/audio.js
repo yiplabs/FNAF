@@ -194,6 +194,46 @@ export function createAudio(settings) {
     });
   }
 
+  // typewriter voice: soft ticks; the phone speaker gets classic garble
+  function dialogueBlip(speaker = 'narrator') {
+    if (!ok()) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const g = ctx.createGain();
+    if (speaker === 'phone') {
+      osc.type = 'square';
+      osc.frequency.value = 380 + Math.random() * 520;
+      g.gain.setValueAtTime(0.045, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.05);
+    } else {
+      osc.type = 'triangle';
+      osc.frequency.value = speaker === 'friend' ? 190 : 240;
+      g.gain.setValueAtTime(0.03, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.035);
+    }
+    osc.connect(g).connect(sfxBus);
+    osc.start(t); osc.stop(t + 0.06);
+  }
+
+  // distant building groan for night ambience
+  function creak() {
+    if (!ok()) return;
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    const f0 = 140 + Math.random() * 160;
+    osc.frequency.setValueAtTime(f0, t);
+    osc.frequency.exponentialRampToValueAtTime(f0 * 0.55, t + 0.9);
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 420; lp.Q.value = 4;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.05, t + 0.15);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + 1.1);
+    osc.connect(lp).connect(g).connect(ambientBus);
+    osc.start(t); osc.stop(t + 1.2);
+  }
+
   function powerOutDrone() {
     if (!ok()) return;
     const t = ctx.currentTime;
@@ -290,6 +330,43 @@ export function createAudio(settings) {
     });
   }
 
+  function stageTune() {
+    startLoop('stage', () => {
+      // chipper little C-major ditty for daytime visits
+      const melody = [523.25, 659.25, 783.99, 659.25, 698.46, 587.33, 659.25, 523.25,
+        783.99, 698.46, 659.25, 587.33, 523.25, 0, 392, 0];
+      const bass = [130.81, 196, 164.81, 196];
+      let i = 0;
+      const interval = setInterval(() => {
+        if (!ok()) return;
+        const t = ctx.currentTime;
+        const f = melody[i % melody.length];
+        if (f) {
+          const osc = ctx.createOscillator();
+          osc.type = 'square';
+          osc.frequency.value = f;
+          const g = ctx.createGain();
+          g.gain.setValueAtTime(0.05, t);
+          g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+          osc.connect(g).connect(musicBus);
+          osc.start(t); osc.stop(t + 0.25);
+        }
+        if (i % 2 === 0) {
+          const b = ctx.createOscillator();
+          b.type = 'triangle';
+          b.frequency.value = bass[(i / 2) % bass.length];
+          const bg = ctx.createGain();
+          bg.gain.setValueAtTime(0.07, t);
+          bg.gain.exponentialRampToValueAtTime(0.0001, t + 0.3);
+          b.connect(bg).connect(musicBus);
+          b.start(t); b.stop(t + 0.32);
+        }
+        i++;
+      }, 240);
+      return { stop() { clearInterval(interval); } };
+    });
+  }
+
   function menuTheme() {
     startLoop('menu', () => {
       // slow detuned minor pad: A2 + C3 + E3, gently pulsing
@@ -327,9 +404,14 @@ export function createAudio(settings) {
     stopLoop,
     sfx: {
       uiClick, camBlip, doorSlam, footstepThud, scream, chime6AM, powerOutDrone,
-      lightBuzz, stopLightBuzz,
+      lightBuzz, stopLightBuzz, dialogueBlip, creak,
     },
-    ambient: { fanHum, stopFan: () => stopLoop('fan'), musicBox, stopMusicBox: () => stopLoop('musicbox'), menuTheme, stopMenuTheme: () => stopLoop('menu') },
+    ambient: {
+      fanHum, stopFan: () => stopLoop('fan'),
+      musicBox, stopMusicBox: () => stopLoop('musicbox'),
+      menuTheme, stopMenuTheme: () => stopLoop('menu'),
+      stageTune, stopStageTune: () => stopLoop('stage'),
+    },
   };
 
   // Unlock on first gesture.

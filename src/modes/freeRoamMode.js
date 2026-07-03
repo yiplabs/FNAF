@@ -126,6 +126,8 @@ export const freeRoamMode = {
     this._onKey = (e) => { if (e.code === 'Escape') ctx.app.switchMode('hub'); };
     window.addEventListener('keydown', this._onKey);
 
+    ctx.audio.ambient.stageTune();
+
     ctx.debug.lookAtStage = () => {
       const stage = g.rooms.find(r => r.type === 'stage');
       if (!stage) return;
@@ -141,6 +143,7 @@ export const freeRoamMode = {
   exit() {
     window.removeEventListener('keydown', this._onKey);
     ctxRef.input.disableLook();
+    ctxRef.audio.ambient.stopStageTune();
     scene = null;
     rigs = [];
   },

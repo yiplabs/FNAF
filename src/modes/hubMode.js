@@ -1,11 +1,36 @@
+import * as THREE from 'three';
 import { el, button, panel, field, textInput, uiRoot, toast } from '../ui/dom.js';
 import { makeDefaultUniverse } from '../data/defaultUniverse.js';
 import { validateLayout, sanitizeUniverse } from '../data/validators.js';
+import { getPizzeria, invalidatePizzeria } from '../world/pizzeriaMesh.js';
 
 // Per-universe hub: the crossroads between all creation tools and play modes.
+// The backdrop is your actual pizzeria, slowly orbited from above.
 
 let ctxRef;
 let screenEl = null;
+let scene = null, camera = null, orbitCenter = null, orbitRadius = 20;
+
+function buildBackdrop() {
+  scene = null;
+  try {
+    const layout = ctxRef.universe.layout;
+    invalidatePizzeria(layout);
+    const pizzeria = getPizzeria(layout);
+    scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x050508);
+    scene.fog = new THREE.Fog(0x050508, 20, 70);
+    scene.add(pizzeria.group);
+    scene.add(new THREE.AmbientLight(0x555577, 0.7));
+    const s = layout.grid.cell;
+    orbitCenter = new THREE.Vector3(layout.grid.w * s / 2, 0, layout.grid.h * s / 2);
+    orbitRadius = Math.max(layout.grid.w, layout.grid.h) * s * 0.62;
+    camera = new THREE.PerspectiveCamera(50, 1, 0.1, 120);
+  } catch (err) {
+    console.warn('hub backdrop unavailable', err);
+    scene = null;
+  }
+}
 
 function saveNow() {
   if (ctxRef.universe && ctxRef.slot >= 0) {
@@ -49,6 +74,7 @@ function renderCreateForm() {
           ctxRef.slot = slot;
           saveNow();
           ctxRef.audio.sfx.uiClick();
+          buildBackdrop();
           renderHub();
         }, 'primary'),
         button('Cancel', () => ctxRef.app.switchMode('menu')),
@@ -76,6 +102,27 @@ function renderHub() {
     ? 'Begin the story from the first day.'
     : `Continue — Night ${u.progress.night}.`;
 
+  // endings gallery: every authored ending + the secret golden night
+  const endingNodes = Object.values(u.story.nodes).filter(n => n.type === 'ending');
+  const endingChip = (endingId, title, bad) => {
+    const seen = u.progress.endingsSeen.includes(endingId);
+    return el('span', {
+      class: 'hint',
+      style: {
+        border: `1px solid ${seen ? (bad ? '#7b2fbe' : '#c9a227') : '#2c2c3a'}`,
+        borderRadius: '4px', padding: '4px 10px',
+        color: seen ? (bad ? '#a86fd8' : '#e8c84a') : '#55555f',
+        letterSpacing: '2px',
+      },
+      text: seen ? title : '? ? ?',
+    });
+  };
+  const galleryRow = el('div', { class: 'row', style: { flexWrap: 'wrap', justifyContent: 'center' } },
+    el('span', { class: 'hint', text: 'ENDINGS:' }),
+    ...endingNodes.map(n => endingChip(n.endingId, n.title, n.bad)),
+    endingChip('golden', 'THE GOLDEN NIGHT', false),
+  );
+
   screenEl = el('div', { class: 'screen fade-in' },
     el('div', { class: 'top-bar' },
       button('◄ Menu', () => { saveNow(); ctxRef.app.switchMode('menu'); }, 'small'),
@@ -90,6 +137,7 @@ function renderHub() {
         ctxRef.universe = clean;
         saveNow();
         toast(`Imported "${clean.meta.name}"`);
+        buildBackdrop();
         renderHub();
       }, 'small'),
     ),
@@ -101,11 +149,9 @@ function renderHub() {
       card('Story Editor', 'Author your own branching nights, choices and endings.', () => ctxRef.app.switchMode('storyeditor')),
       card('Free Roam', playable ? 'Walk your pizzeria in daylight. Meet the band.' : 'Fix the pizzeria layout first!', () => ctxRef.app.switchMode('freeroam'), !playable),
     ),
+    galleryRow,
     storyDone
-      ? el('div', { class: 'row' },
-          button('☠ Night 6: All Servos Maxed', () => ctxRef.app.switchMode('night', { night: 6, custom: true }), 'danger'),
-          el('span', { class: 'hint', text: `Endings seen: ${u.progress.endingsSeen.join(', ')}` }),
-        )
+      ? button('☠ Night 6: All Servos Maxed', () => ctxRef.app.switchMode('night', { night: 6, custom: true }), 'danger')
       : null,
     playable ? null : el('div', { class: 'validation-banner bad', style: { position: 'static', transform: 'none' } },
       el('ul', {}, errors.slice(0, 3).map(e => el('li', { text: `• ${e}` })))),
@@ -136,17 +182,31 @@ export const hubMode = {
       ctx.app.switchMode('menu');
       return;
     }
+    buildBackdrop();
     renderHub();
   },
 
   exit() {
     saveNow();
     screenEl = null;
+    scene = null;
   },
 
   update() {},
-  frame() {
-    // static dark backdrop; clear so leftovers from other modes don't linger
-    ctxRef.engine.renderer.clear(true, true, true);
+  frame(dt, time) {
+    if (!scene) {
+      ctxRef.engine.renderer.clear(true, true, true);
+      return;
+    }
+    const a = time * 0.08;
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    camera.position.set(
+      orbitCenter.x + Math.cos(a) * orbitRadius,
+      orbitRadius * 0.85,
+      orbitCenter.z + Math.sin(a) * orbitRadius,
+    );
+    camera.lookAt(orbitCenter.x, 0, orbitCenter.z);
+    ctxRef.engine.renderer.render(scene, camera);
   },
 };

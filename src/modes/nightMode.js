@@ -18,7 +18,7 @@ let ctxRef, params;
 let scene, officeCam, pizzeria, graph;
 let director, tablet, officeUI, jumpscare;
 let rigs = [];                // parallel to director.agents
-let simTime, power, powerOut, doomAt, state;
+let simTime, power, powerOut, doomAt, state, nextCreakAt;
 let doors, lights, doorBindings;
 let baseYaw, screenEl, lightMeshes;
 let winTimer = null;
@@ -217,6 +217,7 @@ export const nightMode = {
     power = 100;
     powerOut = false;
     state = 'running';
+    nextCreakAt = 14 + ctx.rng.next() * 20;
     doors = { left: { closed: false }, right: { closed: false } };
     lights = { left: false, right: false };
 
@@ -318,6 +319,12 @@ export const nightMode = {
 
     officeUI.setPower(power);
     officeUI.setUsage(usagePips());
+
+    // the building settles around you
+    if (simTime >= nextCreakAt && !powerOut) {
+      ctxRef.audio.sfx.creak();
+      nextCreakAt = simTime + 12 + ctxRef.rng.next() * 28;
+    }
 
     director.tick({
       now: simTime,

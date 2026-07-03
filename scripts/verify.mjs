@@ -268,6 +268,26 @@ const checks = {
     await shot(page, 'm6-editor');
   },
 
+  async m8(page) {
+    console.log('M8: hub backdrop, endings gallery, builder preview');
+    await ensureUniverse(page);
+    await page.waitForTimeout(700);
+    await nonBlack(page, 'hub-orbit');
+    const body = await page.textContent('body');
+    ok('endings gallery shown', /ENDINGS:/.test(body) && /\? \? \?/.test(body));
+    await shot(page, 'm8-hub');
+    await page.evaluate(() => window.__game.app.switchMode('builder'));
+    await page.waitForTimeout(500);
+    await page.evaluate(() => window.__game.ctx.debug.builderPreview(true));
+    await page.waitForTimeout(600);
+    await nonBlack(page, 'builder-preview');
+    await shot(page, 'm8-builder-preview');
+    await page.evaluate(() => window.__game.ctx.debug.builderPreview(false));
+    // dialogue blips don't crash without audio unlock
+    await page.evaluate(() => window.__game.ctx.audio.sfx.dialogueBlip('phone'));
+    ok('dialogueBlip safe', true);
+  },
+
   async m7(page) {
     console.log('M7: audio + full loop');
     await ensureUniverse(page);
